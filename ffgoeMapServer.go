@@ -2,29 +2,24 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
-	"golang.org/x/net/http2"
+	"github.com/hydrox/ffgoehexmap/database"
 )
 
 func main() {
-	var srv http.Server
-	http2.VerboseLogs = true
-	srv.Addr = ":8081"
-	// This enables http2 support
-	err := http2.ConfigureServer(&srv, nil)
+	//var srv http.Server
+	database.Open()
 
-	if err != nil {
-		fmt.Printf("%s", err)
-	}
-
-	fs := http.FileServer(http.Dir("map"))
+	fsMap := http.FileServer(http.Dir("map"))
+	http.Handle("/map/", http.StripPrefix("/map/", fsMap))
+	fsData := http.FileServer(http.Dir("data"))
+	http.Handle("/data/", http.StripPrefix("/data/", fsData))
+	go http.ListenAndServeTLS(":8081", "localhost.cert", "localhost.key", nil)
+	http.ListenAndServe(":8080", nil)
 	/*http.HandleFunc("/test/", test)
 	http.HandleFunc("/bar/", fastHTTPHandler)*/
-	http.Handle("/map/", http.StripPrefix("/map/", fs))
-
-	log.Fatal(srv.ListenAndServeTLS("localhost.cert", "localhost.key"))
+	//log.Fatal(srv.ListenAndServeTLS("localhost.cert", "localhost.key"))
 
 }
 
