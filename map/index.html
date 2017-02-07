@@ -30,68 +30,9 @@
     <div id="map" class="full">uaie</div>
     <div id="sidebar" class="menu">
         <label for="timerange">Zeitraum</label>
-        <input id="timerange" type="range" name="timerange">
+        <input id="timerange" class="map_control map_data" min="1" max="52" value="4" type="range" name="timerange">
         <label for="showoffline">Offline Nodes</label>
-        <input id="showoffline" type="checkbox" name="offline">
+        <input id="showoffline" class="map_control map_filter" type="checkbox" name="offline">
     </div>
-
-    <script type="text/javascript">
-        $(document).ready(function(){
-            var hexmap = new HexMap();
-            console.log("HexMap", hexmap);
-            hexmap.getDataBetweenDates(new Date(2016, 10, 1, 0, 0, 0, 0), new Date())
-        });
-
-
-        function initializeMap(center, startZoom, maxZoom) {
-            var osmUrl    = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                osmAttrib = '&copy; <a href="http://openstreetmap.org/copyright">OpenStreetMap<\/a> contributors',
-                osmLayer  = L.tileLayer(osmUrl, {maxZoom: maxZoom, attribution: osmAttrib});
-    
-            var map = new L.Map('map', {layers: [osmLayer], center: center, zoom: startZoom});
-    
-            return [ map, osmLayer ];
-        }
-
-        function addHexbinLayer(map, data, radius) { 
-            var options = {
-                radius: radius,
-                opacity: 0.5,
-                duration: 200,
-                lng: function(d){
-                    return d[0];
-                },
-                lat: function(d){
-                    return d[1];
-                },
-                value: function(d){
-                    var sum = 0, sum2 = 0;
-                    d.forEach(function (datum) {
-                            sum += datum.o[2];
-                            //sum += datum.o[2] / datum.o[3];
-                            //sum2 += datum.o[3];
-                        });
-                    var mean = sum / d.length;
-                    //var mean = sum / d.length * sum2;
-                    return mean;
-                }//,
-                //valueFloor: _.min(vals), // I think these are currently ignored
-                //valueCeil:  _.max(vals)
-            };
-        
-            var hexLayer = L.hexbinLayer(options).addTo(map)
-            hexLayer.data(data);
-            return hexLayer;
-        }
-
-        var coords_aachen = [ 51.549775, 9.9297669 ];
-
-        var init = initializeMap(coords_aachen, 15, 19);
-        map = init[0];
-        osm = init[1];
-
-        //L.control.layers({ "Open Street Maps": osm }, { "Freifunk RSSI Hexbin": hexbinLayer }).addTo(map);
-
-    </script>
 </body>
 </html>

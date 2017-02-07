@@ -1,3 +1,44 @@
+function initializeMap(center, startZoom, maxZoom) {
+    var osmUrl    = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        osmAttrib = '&copy; <a href="http://openstreetmap.org/copyright">OpenStreetMap<\/a> contributors',
+        osmLayer  = L.tileLayer(osmUrl, {maxZoom: maxZoom, attribution: osmAttrib});
+
+    var map = new L.Map('map', {layers: [osmLayer], center: center, zoom: startZoom});
+
+    return [ map, osmLayer ];
+}
+
+function addHexbinLayer(map, data, radius) { 
+    var options = {
+        radius: radius,
+        opacity: 0.5,
+        duration: 200,
+        lng: function(d){
+            return d[0];
+        },
+        lat: function(d){
+            return d[1];
+        },
+        value: function(d){
+            var sum = 0, sum2 = 0;
+            d.forEach(function (datum) {
+                    sum += datum.o[2];
+                    //sum += datum.o[2] / datum.o[3];
+                    //sum2 += datum.o[3];
+                });
+            var mean = sum / d.length;
+            //var mean = sum / d.length * sum2;
+            return mean;
+        }//,
+        //valueFloor: _.min(vals), // I think these are currently ignored
+        //valueCeil:  _.max(vals)
+    };
+
+    var hexLayer = L.hexbinLayer(options).addTo(map)
+    hexLayer.data(data);
+    return hexLayer;
+}
+
 function HexMap () {
     this.locked = false;
     this.requests = [];
@@ -51,7 +92,7 @@ HexMap.prototype.getDataBetweenDates = function(date1, date2) {
         for (var j = startWeek; j <= endWeek; j++) {
             //console.log("j: " + j);
             var fileName = "data_" + i + "_" + j + ".json";
-            console.log("fileName", fileName);
+            // console.log("fileName", fileName);
             this.requests.push(this.getDataFile(fileName));
         }
     }
@@ -104,10 +145,38 @@ HexMap.prototype.checkForRender = function() {
         }
     }
 
-    var hexbinLayer = addHexbinLayer(map, _.zip(lngs, lats, vals, accuracy), 15);
+    if(this.hexbinLayer != null) {
+        map.removeLayer(this.hexbinLayer);
+        this.hexbinLayer = null;
+    }
+    this.hexbinLayer = addHexbinLayer(map, _.zip(lngs, lats, vals, accuracy), 15);
 
-    console.log("_.min(lats)", _.min(lats));
-    console.log("_.max(lats)", _.max(lats));
-    console.log("_.min(lngs)", _.min(lngs));
-    console.log("_.max(lngs)", _.max(lngs));
+    // console.log("_.min(lats)", _.min(lats));
+    // console.log("_.max(lats)", _.max(lats));
+    // console.log("_.min(lngs)", _.min(lngs));
+    // console.log("_.max(lngs)", _.max(lngs));
+    this.locked = false;
 }
+
+$(document).ready(function(){
+    var coords_goe = [ 51.549775, 9.9297669 ];
+
+    var init = initializeMap(coords_goe, 15, 19);
+    map = init[0];
+    osm = init[1];
+
+    var hexmap = new HexMap();
+    console.log("HexMap", hexmap);
+    hexmap.getDataBetweenDates(new Date(2016, 10, 1, 0, 0, 0, 0), new Date());
+
+    $("input.map_control").on("change", function() {
+        console.log("input.map_control change");
+        if($(this).hasClass("map_data")) {
+            console.log("map_data");
+            console.log($("#timerange").val());
+            var d = new Date();
+            d.setDate(d.getDate() - $("#timerange").val()*7);
+            hexmap.getDataBetweenDates(d, new Date());
+        }
+    });
+});
