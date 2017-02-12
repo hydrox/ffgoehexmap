@@ -43,6 +43,7 @@ function HexMap () {
     this.locked = false;
     this.requests = [];
     this.results = [];
+    this.data = [];
 }
 
 HexMap.prototype.getWeekNumber = function(d) {
@@ -124,38 +125,62 @@ HexMap.prototype.checkForRender = function() {
     console.log(this.results.length + " of " + this.requests.length + " returned");
     console.log("gogogo");
 
+    this.data = [];
 
-    var lngs = [], lats = [], vals = [], accuracy = [], count = 0;
-
+    var count = 0;
     for (var i = this.results.length - 1; i >= 0; i--) {
         if (this.results[i] == null) {
             continue;
         }
+
         var values = this.results[i]
         for (var j = values.length - 1; j >= 0; j--) {
-            if (values[j].accuracy > 10) {
-                continue;
-            }
-            lngs[count] = values[j].longitude;
-            lats[count] = values[j].latitude;
-            vals[count] = values[j].rssi;
-            accuracy[count] = values[i].accuracy;
-            //console.log("lngs["+i+"]", lngs[i]);
+            this.data[count] = values[j];
             count++;
         }
+
     }
 
-    if(this.hexbinLayer != null) {
-        map.removeLayer(this.hexbinLayer);
-        this.hexbinLayer = null;
-    }
-    this.hexbinLayer = addHexbinLayer(map, _.zip(lngs, lats, vals, accuracy), 15);
-
+    this.renderMap();
     // console.log("_.min(lats)", _.min(lats));
     // console.log("_.max(lats)", _.max(lats));
     // console.log("_.min(lngs)", _.min(lngs));
     // console.log("_.max(lngs)", _.max(lngs));
     this.locked = false;
+}
+
+HexMap.prototype.renderMap = function() {
+    var lngs = [], lats = [], vals = [], accuracy = [], count = 0;
+
+    var timerange = $("#timerange").val();
+    var accuracy = $("#accuracy").val();
+
+    var d = new Date();
+    d.setDate(d.getDate() - timerange*7);
+    var time = d.getTime() / 1000;
+
+    var values = this.data
+    for (var j = values.length - 1; j >= 0; j--) {
+        if (values[j].accuracy > accuracy || values[j].time < time) {
+            continue;
+        }
+        lngs[count] = values[j].longitude;
+        lats[count] = values[j].latitude;
+        vals[count] = values[j].rssi;
+        accuracy[count] = values[j].accuracy;
+        //console.log("lngs["+i+"]", lngs[i]);
+        count++;
+    }
+
+    console.log("count: " + count);
+    if(this.hexbinLayer != null) {
+        map.removeLayer(this.hexbinLayer);
+        this.hexbinLayer = null;
+    }
+
+    if(count > 0) {
+        this.hexbinLayer = addHexbinLayer(map, _.zip(lngs, lats, vals, accuracy), 10);        
+    }
 }
 
 $(document).ready(function(){
@@ -167,16 +192,25 @@ $(document).ready(function(){
 
     var hexmap = new HexMap();
     console.log("HexMap", hexmap);
-    hexmap.getDataBetweenDates(new Date(2016, 10, 1, 0, 0, 0, 0), new Date());
+    //hexmap.getDataBetweenDates(new Date(2016, 10, 1, 0, 0, 0, 0), new Date());
 
     $("input.map_control").on("change", function() {
         console.log("input.map_control change");
+        var timerange = $("#timerange").val();
+        $("#timerangelabel").html($("#timerangelabel").attr("data-label") + timerange + " Wochen");
+        var accuracy = $("#accuracy").val();
+        $("#accuracylabel").html($("#accuracylabel").attr("data-label") + accuracy + "m");
+
         if($(this).hasClass("map_data")) {
             console.log("map_data");
-            console.log($("#timerange").val());
+            console.log(timerange);
             var d = new Date();
-            d.setDate(d.getDate() - $("#timerange").val()*7);
+            d.setDate(d.getDate() - timerange*7);
             hexmap.getDataBetweenDates(d, new Date());
+        } else if($(this).hasClass("map_filter")) {
+            console.log("map_filter");
+            hexmap.renderMap();
         }
     });
+    $("#timerange").trigger("change");
 });
