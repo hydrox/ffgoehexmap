@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -34,12 +35,14 @@ func checkTimestampFile() {
 	dir := "data"
 	files, _ := ioutil.ReadDir(dir)
 	filesCount := len(files)
-	fmt.Println(filesCount)
 	datafiles := make([]DataFile, filesCount)
 
-	for count, f := range files {
-		fmt.Println(count)
+	count := 0
+	for _, f := range files {
 		filename := f.Name()
+		if filename == "nodes.json" || filename == "timestamps.json" || filename == "graph.json" {
+			continue
+		}
 		fmt.Println(filename)
 		filepath := dir + "/" + filename
 		fmt.Println(filepath)
@@ -63,8 +66,15 @@ func checkTimestampFile() {
 		datafiles[count] = DataFile{
 			Timestamp: timestamp,
 			Name:      filename}
+		count++
 	}
-	fmt.Println(datafiles)
+	b, err := json.Marshal(datafiles[0:count])
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	ioutil.WriteFile("data/timestamps.json", b, 0644)
+
 }
 
 func test(w http.ResponseWriter, r *http.Request) {
