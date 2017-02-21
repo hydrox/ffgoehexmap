@@ -2,14 +2,21 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
-
-	"github.com/hydrox/ffgoehexmap/database"
+	"os"
 )
+
+type DataFile struct {
+	Timestamp int64
+	Name      string
+}
 
 func main() {
 	//var srv http.Server
-	database.Open()
+	//database.Open()
+
+	checkTimestampFile()
 
 	fsMap := http.FileServer(http.Dir("map"))
 	http.Handle("/map/", http.StripPrefix("/map/", fsMap))
@@ -21,6 +28,43 @@ func main() {
 	http.HandleFunc("/bar/", fastHTTPHandler)*/
 	//log.Fatal(srv.ListenAndServeTLS("localhost.cert", "localhost.key"))
 
+}
+
+func checkTimestampFile() {
+	dir := "data"
+	files, _ := ioutil.ReadDir(dir)
+	filesCount := len(files)
+	fmt.Println(filesCount)
+	datafiles := make([]DataFile, filesCount)
+
+	for count, f := range files {
+		fmt.Println(count)
+		filename := f.Name()
+		fmt.Println(filename)
+		filepath := dir + "/" + filename
+		fmt.Println(filepath)
+
+		f, err := os.Open(filepath)
+		if err != nil {
+			fmt.Println("Error while opening the file.")
+			return
+		}
+
+		defer f.Close()
+
+		// Checking if the opened handle is really a file
+		statinfo, err := f.Stat()
+		if err != nil {
+			fmt.Println("stat() failure.")
+			return
+		}
+		timestamp := statinfo.ModTime().Unix()
+		fmt.Println(timestamp)
+		datafiles[count] = DataFile{
+			Timestamp: timestamp,
+			Name:      filename}
+	}
+	fmt.Println(datafiles)
 }
 
 func test(w http.ResponseWriter, r *http.Request) {
