@@ -14,7 +14,7 @@ body {
 	background-color: lightgrey;
 	opacity: 0.5;
 	position: fixed;
-	right: 0px;
+	left: 0px;
 }
 .menu:hover {
 	opacity: 1;

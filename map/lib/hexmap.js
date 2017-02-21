@@ -3,7 +3,14 @@ function initializeMap(center, startZoom, maxZoom) {
         osmAttrib = '&copy; <a href="http://openstreetmap.org/copyright">OpenStreetMap<\/a> contributors',
         osmLayer  = L.tileLayer(osmUrl, {maxZoom: maxZoom, attribution: osmAttrib});
 
-    var map = new L.Map('map', {layers: [osmLayer], center: center, zoom: startZoom});
+    var map = new L.Map('map', {
+        layers: [osmLayer],
+        center: center,
+        zoom: startZoom,
+        zoomControl: false,
+        reuseTiles: true,
+        unloadInvisibleTiles: true
+    });
 
     return [ map, osmLayer ];
 }
