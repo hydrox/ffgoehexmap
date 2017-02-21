@@ -112,15 +112,15 @@ HexMap.prototype.getDataFile = function(file){
     var that = this;
     return $.ajax({
         url: url
-        }).done(function(data) {
-        //console.log("data", data);
+        }).done(function(data, status, jqXHR) {
+        console.log("data", data);
         console.timeStamp("done");
-        that.results.push(data.values)
+        that.results.push(data.values);
         that.checkForRender();
     }).fail(function(e) {
         //console.log("e", e);
         console.timeStamp("fail");
-        that.results.push(null)
+        that.results.push(null);
         that.checkForRender();
     });
 }
@@ -202,6 +202,7 @@ $(document).ready(function(){
     //hexmap.getDataBetweenDates(new Date(2016, 10, 1, 0, 0, 0, 0), new Date());
 
     $("input.map_control").on("change", function() {
+        localStorage.setItem($(this).attr("id"), $(this).val());
         console.log("input.map_control change");
         var timerange = $("#timerange").val();
         $("#timerangelabel").html($("#timerangelabel").attr("data-label") + timerange + " Wochen");
@@ -219,5 +220,12 @@ $(document).ready(function(){
             hexmap.renderMap();
         }
     });
+    $("input.map_control").each(function() {
+        var id = $(this).attr("id");
+        var newVal = localStorage.getItem(id)
+        if (newVal) {
+            $(this).val(newVal)
+        }
+    })
     $("#timerange").trigger("change");
 });
