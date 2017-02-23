@@ -50,7 +50,8 @@ function HexMap () {
     this.locked = false;
     this.requests = [];
     this.results = [];
-    this.data = [];
+    this.data = {};
+    this.timestamps = [];
 }
 
 HexMap.prototype.getWeekNumber = function(d) {
@@ -68,11 +69,26 @@ HexMap.prototype.getWeekNumber = function(d) {
     return [d.getFullYear(), weekNo];
 }
 
-HexMap.prototype.getDataBetweenDates = function(date1, date2) {
+HexMap.prototype.getTimestamps = function(date1, date2) {
     if (this.locked) {
         return
     }
     this.locked = true;
+    //var url='https://localhost:8081/data/' + file;
+    var url='/data/timestamps.json';
+    var that = this;
+    return $.ajax({
+        url: url
+        }).done(function(data, status, jqXHR) {
+        console.log("timestamp-data", data);
+        that.timestamps = data;
+        that.getDataBetweenDates(date1, date2);
+    }).fail(function(e) {
+        that.getDataBetweenDates(date1, date2);
+    });
+}
+
+HexMap.prototype.getDataBetweenDates = function(date1, date2) {
     weekNum1 = this.getWeekNumber(date1)
     console.log(weekNum1);
     weekNum2 = this.getWeekNumber(date2)
@@ -101,7 +117,11 @@ HexMap.prototype.getDataBetweenDates = function(date1, date2) {
             //console.log("j: " + j);
             var fileName = "data_" + i + "_" + j + ".json";
             // console.log("fileName", fileName);
-            this.requests.push(this.getDataFile(fileName));
+            for (var k = 0; k < this.timestamps.length; k++) {
+                if (this.timestamps[k].Name == fileName) {
+                    this.requests.push(this.getDataFile(fileName));
+                }
+            }
         }
     }
 }
@@ -115,12 +135,12 @@ HexMap.prototype.getDataFile = function(file){
         }).done(function(data, status, jqXHR) {
         console.log("data", data);
         console.timeStamp("done");
-        that.results.push(data.values);
+        that.results.push({"file": file, "values": data.values});
         that.checkForRender();
     }).fail(function(e) {
         //console.log("e", e);
         console.timeStamp("fail");
-        that.results.push(null);
+        that.results.push({"file": file, "values": null});
         that.checkForRender();
     });
 }
@@ -132,19 +152,18 @@ HexMap.prototype.checkForRender = function() {
     console.log(this.results.length + " of " + this.requests.length + " returned");
     console.log("gogogo");
 
-    this.data = [];
-
     var count = 0;
     for (var i = this.results.length - 1; i >= 0; i--) {
-        if (this.results[i] == null) {
+        if (this.results[i].values == null) {
             continue;
         }
 
-        var values = this.results[i]
-        for (var j = values.length - 1; j >= 0; j--) {
+        var values = this.results[i].values
+        this.data[this.results[i].file] = values;
+/*        for (var j = values.length - 1; j >= 0; j--) {
             this.data[count] = values[j];
             count++;
-        }
+        }*/
 
     }
 
@@ -166,17 +185,22 @@ HexMap.prototype.renderMap = function() {
     d.setDate(d.getDate() - timerange*7);
     var time = d.getTime() / 1000;
 
-    var values = this.data
-    for (var j = values.length - 1; j >= 0; j--) {
-        if (values[j].accuracy > accuracy || values[j].time < time) {
-            continue;
+
+    for (var key in this.data) {
+        if (this.data.hasOwnProperty(key)) {
+            var values = this.data[key];
+            for (var j = values.length - 1; j >= 0; j--) {
+                if (values[j].accuracy > accuracy || values[j].time < time) {
+                    continue;
+                }
+                lngs[count] = values[j].longitude;
+                lats[count] = values[j].latitude;
+                vals[count] = values[j].rssi;
+                accuracy[count] = values[j].accuracy;
+                //console.log("lngs["+i+"]", lngs[i]);
+                count++;
+            }
         }
-        lngs[count] = values[j].longitude;
-        lats[count] = values[j].latitude;
-        vals[count] = values[j].rssi;
-        accuracy[count] = values[j].accuracy;
-        //console.log("lngs["+i+"]", lngs[i]);
-        count++;
     }
 
     console.log("count: " + count);
@@ -191,7 +215,7 @@ HexMap.prototype.renderMap = function() {
 }
 
 $(document).ready(function(){
-    var coords_goe = [ 51.549775, 9.9297669 ];
+    var coords_goe = [ 51.532708651137604, 9.935148954391478 ];
 
     var init = initializeMap(coords_goe, 15, 19);
     map = init[0];
@@ -214,7 +238,7 @@ $(document).ready(function(){
             console.log(timerange);
             var d = new Date();
             d.setDate(d.getDate() - timerange*7);
-            hexmap.getDataBetweenDates(d, new Date());
+            hexmap.getTimestamps(d, new Date());
         } else if($(this).hasClass("map_filter")) {
             console.log("map_filter");
             hexmap.renderMap();
