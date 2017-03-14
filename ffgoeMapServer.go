@@ -23,6 +23,7 @@ func main() {
 	http.Handle("/map/", http.StripPrefix("/map/", fsMap))
 	fsData := http.FileServer(http.Dir("data"))
 	http.Handle("/data/", http.StripPrefix("/data/", fsData))
+	http.HandleFunc("/data/nodes.json", getNodes)
 	go http.ListenAndServeTLS(":8081", "localhost.cert", "localhost.key", nil)
 	http.ListenAndServe(":8080", nil)
 	/*http.HandleFunc("/test/", test)
@@ -77,8 +78,23 @@ func checkTimestampFile() {
 
 }
 
-func test(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "test! RequestURI is %q", r.RequestURI)
+func getNodes(w http.ResponseWriter, r *http.Request) {
+	// https://cccgoe.de/map2data/nodes.json
+	resp, err := http.Get("https://cccgoe.de/map2data/nodes.json")
+	if err != nil {
+		// handle error
+		fmt.Fprintf(w, err.Error())
+		return
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		// handle error
+		fmt.Fprintf(w, err.Error())
+		return
+	}
+	fmt.Fprint(w, string(body))
+
 }
 
 func fastHTTPHandler(w http.ResponseWriter, r *http.Request) {
