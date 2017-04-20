@@ -52,6 +52,8 @@ function HexMap () {
     this.results = [];
     this.data = {};
     this.timestamps = [];
+    this.nodesData = {};
+    this.nodes = [];
 }
 
 HexMap.prototype.getWeekNumber = function(d) {
@@ -88,6 +90,28 @@ HexMap.prototype.getTimestamps = function(date1, date2) {
     });
 }
 
+HexMap.prototype.getNodes = function() {
+    //var url='https://localhost:8081/data/' + file;
+    var url='/data/nodes.json';
+    var that = this;
+    return $.ajax({
+        url: url
+        }).done(function(data, status, jqXHR) {
+
+        var nodes = data.nodes;
+        //console.log("data", data);
+        console.log("timestamp", data.timestamp);
+        for (var key in nodes) {
+            // skip loop if the property is from prototype
+            if (!nodes.hasOwnProperty(key)) continue;
+            var location = nodes[key].nodeinfo.location;
+            //console.log(key, location);
+            if (location != null) {
+                L.circleMarker([location.latitude, location.longitude], {'color': 'blue', 'opacity': 1}).setRadius(5).addTo(map);
+            }
+        };
+    });
+}
 HexMap.prototype.getDataBetweenDates = function(date1, date2) {
     weekNum1 = this.getWeekNumber(date1)
     console.log(weekNum1);
@@ -133,8 +157,6 @@ HexMap.prototype.getDataFile = function(file){
     return $.ajax({
         url: url
         }).done(function(data, status, jqXHR) {
-        console.log("data", data);
-        console.timeStamp("done");
         that.results.push({"file": file, "values": data.values});
         that.checkForRender();
     }).fail(function(e) {
@@ -223,6 +245,8 @@ $(document).ready(function(){
 
     var hexmap = new HexMap();
     console.log("HexMap", hexmap);
+
+    hexmap.getNodes();
     //hexmap.getDataBetweenDates(new Date(2016, 10, 1, 0, 0, 0, 0), new Date());
 
     $("input.map_control").on("change", function() {

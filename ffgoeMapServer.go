@@ -93,6 +93,7 @@ func getNodes(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, err.Error())
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	fmt.Fprint(w, string(body))
 
 }
